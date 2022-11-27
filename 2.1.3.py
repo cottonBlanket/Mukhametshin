@@ -2,7 +2,15 @@ from jinja2 import Environment, FileSystemLoader
 import pdfkit
 import csv
 import math
-import xlsx2html
+from openpyxl.worksheet import worksheet
+from openpyxl import Workbook
+from openpyxl.styles import Border
+from openpyxl.styles import Side
+from openpyxl.styles import Font
+from openpyxl.worksheet.dimensions import DimensionHolder, ColumnDimension
+from openpyxl.utils import get_column_letter
+import matplotlib.pyplot as plt
+from matplotlib.pyplot import figure
 
 
 class PdfReport:
@@ -58,6 +66,7 @@ class Input:
     def __init__(self):
         self.file_name = input("Введите название файла: ")
         self.profession = input("Введите название профессии: ")
+        self.reportType = input("Вакансии или Статистика: ")
         self.fields = []
 
     def csv_parser(self):
@@ -140,13 +149,148 @@ class GraphData:
         return dict(list(sorted(non_sorted_dict.items(), key=lambda x: x[1], reverse=True))[:10])
 
 
+class PngReport:
+    def __init__(self, years_salary: dict, years_count: dict,
+                 prof_salary: dict, prof_count: dict,
+                 areas_salary: dict, areas_count: dict):
+        self.years_salary = years_salary
+        self.years_count = years_count
+        self.prof_salary = prof_salary
+        self.prof_count = prof_count
+        self.areas_salary = areas_salary
+        self.areas_count = areas_count
+
+    def get_salary_graph(self):
+        fig = plt.figure()
+        plt.rcParams.update({'font.size': 8})
+        self.add_bar_subplot(fig, "Уровень зарплат по годам", 221, self.years_salary, "средняя з/п", "y",
+                                     subplot_type="", prof_dict=self.prof_salary,
+                                     x2_label=f'з/п {input_set.profession}')
+        self.add_bar_subplot(fig, "Количество вакансий по годам", 222, self.years_count, "Количество вакансий", "y",
+                                     subplot_type="", prof_dict=self.prof_count,
+                                     x2_label=f'Количество вакансий {input_set.profession}')
+        self.add_bar_subplot(fig, "Уровень зарплат по городам", 223, self.areas_salary, "уровень з/п", "x",
+                                     subplot_type="horizontal")
+        self.add_pie_sublot(fig, "Доля вакансий по городам", 224, self.areas_count)
+
+        plt.tight_layout()
+        plt.savefig("graph.png", dpi=300)
+
+    @classmethod
+    def add_bar_subplot(cls, fig: figure, title: str, width: int, full_dict: dict, x1_label: str,  axis, subplot_type="", prof_dict={}, x2_label=""):
+        ax = fig.add_subplot(width)
+        ax.set_title(title, fontsize=8)
+        ax.tick_params(axis="both", labelsize=8)
+        ax.grid(True, axis=axis)
+        if subplot_type == "horizontal":
+            ax.barh(list(full_dict.keys()), list(full_dict.values()), label=x1_label, align="center")
+            ax.invert_yaxis()
+        else:
+            x_axis = range(len(full_dict.keys()))
+            x1 = list(map(lambda x: float(x) - 0.2, x_axis))
+            x2 = list(map(lambda x: float(x) + 0.2, x_axis))
+            ax.bar(x1, list(full_dict.values()), width=0.4, label=x1_label)
+            ax.bar(x2, list(prof_dict.values()), width=0.4, label=x2_label)
+            ax.set_xticks(x_axis, list(full_dict.keys()), rotation="vertical")
+        ax.legend(fontsize=8)
+
+    @classmethod
+    def add_pie_sublot(cls, fig: figure, title: str, width: int, data: dict):
+        ax = fig.add_subplot(width)
+        ax.set_title(title, fontsize=8)
+        ax.tick_params(axis="both", labelsize=8)
+        keys = list(data.keys())
+        values = list(data.values())
+        ax.pie(values, labels=keys)
+
+
+class ExcelReport:
+    def __init__(self, side, font):
+        self.border = Border(left=side, top=side, right=side, bottom=side)
+        self.font = font
+
+    def generate_excel(self, dicts: list):
+        wb = Workbook()
+        years_sheet = self.generate_years_sheet(wb, dicts[0], dicts[1], dicts[2], dicts[3])
+        areas_sheet = self.generate_areas_sheet(wb, dicts[4], dicts[5])
+        ws = wb.worksheets[0]
+        wb.remove(ws)
+        wb.save("report.xlsx")
+
+    def generate_years_sheet(self, wb: Workbook, salaries: dict, prof_salaries: dict, counts: dict, prof_counts: dict) -> worksheet.Worksheet:
+        years_sheet = wb.create_sheet("Статистика по годам")
+        years_sheet['A1'] = 'Год'
+        years_sheet['B1'] = 'Средняя зарплата'
+        years_sheet['C1'] = f'Средняя зарплата - {input_set.profession}'
+        years_sheet['D1'] = 'Количество вакансий'
+        years_sheet['E1'] = f'Количество вакансий - {input_set.profession}'
+        column_cells = [years_sheet["A1"], years_sheet['B1'], years_sheet['C1'], years_sheet['D1'], years_sheet['E1']]
+        for cell in column_cells:
+            cell.border = self.border
+            cell.font = self.font
+        for x in range(len(salaries)):
+            years_sheet[f'A{x + 2}'] = list(salaries.keys())[x]
+            years_sheet[f'B{x + 2}'] = list(salaries.values())[x]
+            years_sheet[f'C{x + 2}'] = list(prof_salaries.values())[x]
+            years_sheet[f'D{x + 2}'] = list(counts.values())[x]
+            years_sheet[f'E{x + 2}'] = list(prof_counts.values())[x]
+            years_sheet[f'A{x + 2}'].border = self.border
+            years_sheet[f'B{x + 2}'].border = self.border
+            years_sheet[f'C{x + 2}'].border = self.border
+            years_sheet[f'D{x + 2}'].border = self.border
+            years_sheet[f'E{x + 2}'].border = self.border
+        dim_holder = DimensionHolder(worksheet=years_sheet)
+
+        for col in range(years_sheet.min_column, years_sheet.max_column + 1):
+            dim_holder[get_column_letter(col)] = ColumnDimension(years_sheet, min=col, max=col, width=20)
+
+        years_sheet.column_dimensions = dim_holder
+
+        return years_sheet
+
+    def generate_areas_sheet(self, wb: Workbook, salaries: dict, counts: dict) -> worksheet.Worksheet:
+        areas_sheet = wb.create_sheet("Статистика по городам")
+        areas_sheet['A1'] = "Город"
+        areas_sheet['B1'] = "Уровень зарплат"
+        areas_sheet['D1'] = "Город"
+        areas_sheet['E1'] = "Доля вакансий"
+        column_cells = [areas_sheet['A1'], areas_sheet['B1'], areas_sheet['D1'], areas_sheet['E1']]
+        for cell in column_cells:
+            cell.border = self.border
+            cell.font = self.font
+        for x in range(10):
+            areas_sheet[f'A{x + 2}'] = list(salaries.keys())[x]
+            areas_sheet[f'B{x + 2}'] = list(salaries.values())[x]
+            areas_sheet[f'D{x + 2}'] = list(counts.keys())[x]
+            areas_sheet[f'E{x + 2}'] = list(counts.values())[x]
+            areas_sheet[f'A{x + 2}'].border = self.border
+            areas_sheet[f'B{x + 2}'].border = self.border
+            areas_sheet[f'D{x + 2}'].border = self.border
+            areas_sheet[f'E{x + 2}'].border = self.border
+        dim_holder = DimensionHolder(worksheet=areas_sheet)
+
+        for col in range(areas_sheet.min_column, areas_sheet.max_column + 1):
+            dim_holder[get_column_letter(col)] = ColumnDimension(areas_sheet, min=col, max=col, width=20)
+
+        areas_sheet.column_dimensions = dim_holder
+        return areas_sheet
+
+
 input_set = Input()
 years = GraphData(input_set.csv_parser(), "years")
 prof_years = GraphData(input_set.csv_parser(), "years", input_set.profession)
 areas = GraphData(input_set.csv_parser(), "areas")
-pdf_report = PdfReport(years.get_graph_data()[0], years.get_graph_data()[1],
-                            prof_years.get_graph_data()[0], prof_years.get_graph_data()[1],
-                            areas.get_graph_data()[0], areas.get_graph_data()[1])
-pdf_report.get_pdf_report()
+if input_set.reportType == "Вакансии":
+    reportExcel = ExcelReport(Side(style="thin", color="000000"), Font(bold=True))
+    reportExcel.generate_excel([years.get_graph_data()[0], years.get_graph_data()[1],
+                                prof_years.get_graph_data()[0], prof_years.get_graph_data()[1],
+                                areas.get_graph_data()[0], areas.get_graph_data()[1]])
+elif input_set.reportType == "Статистика":
+    pdf_report = PdfReport(years.get_graph_data()[0], years.get_graph_data()[1],
+                                prof_years.get_graph_data()[0], prof_years.get_graph_data()[1],
+                                areas.get_graph_data()[0], areas.get_graph_data()[1])
+    pdf_report.get_pdf_report()
+
+
 
 

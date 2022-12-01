@@ -12,8 +12,7 @@ from openpyxl.utils import get_column_letter
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import figure
 
-#строчка для создания конфликта
-
+#этот класс нужен для создания пдф-отчета
 class PdfReport:
     def __init__(self, years_salary: dict, years_count: dict,
                  prof_salary: dict, prof_count: dict,
@@ -251,6 +250,10 @@ class ExcelReport:
 
     def generate_areas_sheet(self, wb: Workbook, salaries: dict, counts: dict) -> worksheet.Worksheet:
         areas_sheet = wb.create_sheet("Статистика по городам")
+        column_cells = [areas_sheet['A1'], areas_sheet['B1'], areas_sheet['D1'], areas_sheet['E1']]
+        for cell in column_cells:
+            cell.border = self.border
+            cell.font = self.font
         areas_sheet['A1'] = "Город"
         areas_sheet['B1'] = "Уровень зарплат"
         areas_sheet['D1'] = "Город"
@@ -264,10 +267,6 @@ class ExcelReport:
             areas_sheet[f'B{x + 2}'].border = self.border
             areas_sheet[f'D{x + 2}'].border = self.border
             areas_sheet[f'E{x + 2}'].border = self.border
-        column_cells = [areas_sheet['A1'], areas_sheet['B1'], areas_sheet['D1'], areas_sheet['E1']]
-        for cell in column_cells:
-            cell.border = self.border
-            cell.font = self.font
         dim_holder = DimensionHolder(worksheet=areas_sheet)
 
         for col in range(areas_sheet.min_column, areas_sheet.max_column + 1):

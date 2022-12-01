@@ -250,14 +250,14 @@ class ExcelReport:
 
     def generate_areas_sheet(self, wb: Workbook, salaries: dict, counts: dict) -> worksheet.Worksheet:
         areas_sheet = wb.create_sheet("Статистика по городам")
-        areas_sheet['A1'] = "Город"
-        areas_sheet['B1'] = "Уровень зарплат"
-        areas_sheet['D1'] = "Город"
-        areas_sheet['E1'] = "Доля вакансий"
         column_cells = [areas_sheet['A1'], areas_sheet['B1'], areas_sheet['D1'], areas_sheet['E1']]
         for cell in column_cells:
             cell.border = self.border
             cell.font = self.font
+        areas_sheet['A1'] = "Город"
+        areas_sheet['B1'] = "Уровень зарплат"
+        areas_sheet['D1'] = "Город"
+        areas_sheet['E1'] = "Доля вакансий"
         for x in range(10):
             areas_sheet[f'A{x + 2}'] = list(salaries.keys())[x]
             areas_sheet[f'B{x + 2}'] = list(salaries.values())[x]

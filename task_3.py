@@ -222,8 +222,8 @@ class GraphData:
         self.profession = profession
         self.salary_data = dict()
         self.count_data = dict()
-        self.calculate_data()
         self.x_axis = x_axis
+        self.calculate_data()
 
     def calculate_data(self):
         """

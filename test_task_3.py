@@ -1,6 +1,5 @@
 from unittest import TestCase
-from task_3 import GraphData
-from task_3 import Vacancy
+from task_3 import GraphData, Vacancy, Input
 
 vacancy_fields = ['name', 'salary_from', 'salary_to', 'salary_currency', 'area_name', 'published_at']
 vacancy_row1 = ["Программист", 10000, 20000, "RUR", "Екатеринбург", "2022-12-03T22:39:07+0500"]
@@ -89,5 +88,7 @@ class CalculateDataByProfYears(TestCase):
 
     def test_area_part_by_years(self):
         self.assertEqual(self.test_data.get_graph_data()[1][2022], 1)
+
+
 
 

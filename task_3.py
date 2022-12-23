@@ -1,3 +1,5 @@
+import time
+
 from jinja2 import Environment, FileSystemLoader
 import pdfkit
 import csv
@@ -61,7 +63,7 @@ class PdfReport:
         генерирует отчет в виде пдф-файла на основе html-документа
         :return: pdf-файл
         """
-        env = Environment(loader=FileSystemLoader('.'))
+        env = Environment(loader=FileSystemLoader(''))
         template = env.get_template('pdf_template.html')
         first_header = ["Год", "Средняя зарплата", f"Средняя зарплата {env}", "Количество вакансий", f"Количество вакансий {env}"]
         second_header = ["Город", "Уровень зарплат", "Город", "Доля вакансий"]
@@ -235,11 +237,11 @@ class GraphData:
         pr.enable()
         for vacancy in self.data:
             self.add_data_from_vacancy(vacancy)
+        pr.disable()
+        pr.print_stats()
         for x in self.salary_data:
             if self.count_data[x] != 0:
                 self.salary_data[x] = math.floor(self.salary_data[x] / self.count_data[x])
-        pr.disable()
-        pr.print_stats()
 
     def add_data_from_vacancy(self, vacancy: Vacancy):
         """

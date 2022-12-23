@@ -1,5 +1,5 @@
 from unittest import TestCase
-from task_3 import GraphData, Vacancy, Input
+from task_3 import GraphData, Vacancy
 
 vacancy_fields = ['name', 'salary_from', 'salary_to', 'salary_currency', 'area_name', 'published_at']
 vacancy_row1 = ["Программист", 10000, 20000, "RUR", "Екатеринбург", "2022-12-03T22:39:07+0500"]

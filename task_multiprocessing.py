@@ -1,5 +1,8 @@
+import cProfile
 import math
 import os.path
+import time
+
 import pandas as pd
 import multiprocessing
 
@@ -24,23 +27,36 @@ class Data:
 
 class MultiprocessorHandler:
     def __init__(self):
-        #self.input_set = Input
+        self.file_name = input("Введите название файла: ")
+        self.profession = input("Введите название профессии: ")
         self.result_data = Data()
         self.data = pd.read_csv("vacancies_by_year.csv")
+        self.data['published_at'] = self.data['published_at'].apply(lambda x: int(x[:4]))
         self.years = self.data['published_at'].unique()
         self.data['salary'] = self.data[['salary_from', 'salary_to']].mean(axis=1)
-        self.data['published_at'] = self.data['published_at'].apply(lambda x: int(x[:4]))
 
-    def get_result(self):
+        pr = cProfile.Profile()
+        pr.enable()
         self.create_processes()
         self.csv_city_parser()
+        pr.disable()
+        pr.print_stats()
         self.result_data.sorted_dicts()
-        return self.result_data
+
+
+    def print_result(self):
+        print('Динамика уровня зарплат по годам:', self.result_data.salary_by_years)
+        print('Динамика количества вакансий по годам:', self.result_data.count_by_years)
+        print('Динамика уровня зарплат по годам для выбранной профессии:', self.result_data.profession_salary)
+        print('Динамика количества вакансий по годам для выбранной профессии:', self.result_data.profession_count)
+        print('Уровень зарплат по городам (в порядке убывания):', self.result_data.salary_by_cities)
+        print('Доля вакансий по городам (в порядке убывания):', self.result_data.count_by_cities)
 
     def create_processes(self):
         manager = multiprocessing.Manager()
         result_data = manager.dict()
         all_processes = []
+
         for year in self.years:
             process = multiprocessing.Process(target=self.csv_year_parser, args=(year, result_data))
             all_processes.append(process)
@@ -48,6 +64,8 @@ class MultiprocessorHandler:
 
         for process in all_processes:
             process.join()
+
+
         self.fill_data(result_data)
 
     def fill_data(self, data: dict):
@@ -62,12 +80,12 @@ class MultiprocessorHandler:
         if os.path.exists(file_name):
             df = pd.read_csv(file_name)
             df['salary'] = df[["salary_from", "salary_to"]].mean(axis=1)
-            df_vacancy = df[df["name"].str.contains("IT")]
+            df_vacancy = df[df["name"].str.contains(self.profession)]
             if df_vacancy.empty:
-                data[year] = [df['salary'].mean(), df.count(), 0, 0]
+                data[year] = [df['salary'].mean(), len(df.index), 0, 0]
             else:
-                data[year] = [df['salary'].mean(), df.count(),
-                              math.floor(df_vacancy['salary'].mean()), df_vacancy.count()]
+                data[year] = [df['salary'].mean(), len(df.index),
+                              math.floor(df_vacancy['salary'].mean()), len(df_vacancy.index)]
 
     def csv_city_parser(self):
         total = len(self.data)
@@ -79,12 +97,10 @@ class MultiprocessorHandler:
         self.result_data.salary_by_cities = {city: 0 for city in cities}
         self.result_data.count_by_cities = {city: 0 for city in cities}
         for city in cities:
-            self.result_data.salary_by_cities = int(df_area[df_area['area_name'] == city]['salary'])
+            self.result_data.salary_by_cities[city] = int(df_area[df_area['area_name'] == city]['salary'])
             self.result_data.count_by_cities[city] = round(int(df_count[df_count['area_name'] == city]['count']) / total, 4)
 
 
 if __name__ == '__main__':
-    m = MultiprocessorHandler()
-    res = m.get_result()
+    MultiprocessorHandler().print_result()
 
-    print(res.salary_by_years)

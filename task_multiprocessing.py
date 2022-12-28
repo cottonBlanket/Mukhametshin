@@ -34,10 +34,10 @@ class MultiprocessorHandler:
         self.data['published_at'] = self.data['published_at'].apply(lambda x: int(x[:4]))
         self.years = self.data['published_at'].unique()
         self.data['salary'] = self.data[['salary_from', 'salary_to']].mean(axis=1)
-
+        self.create_processes()
         pr = cProfile.Profile()
         pr.enable()
-        self.create_processes()
+        time.sleep(1.3)
         self.csv_city_parser()
         pr.disable()
         pr.print_stats()

@@ -26,10 +26,10 @@ class Currency:
                 self.currencies_frequency[x] = 1
 
     def calculate_popular_currencies(self):
+        self.popular_currencies['date'] = []
         for x in self.currencies_frequency:
             if str(x) != 'nan' and self.currencies_frequency[x] > 5000:
                 self.popular_currencies[x] = []
-        self.popular_currencies['date'] = []
         self.popular_currencies.pop('RUR')
 
     def print_currencies(self):

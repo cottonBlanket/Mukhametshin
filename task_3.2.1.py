@@ -62,7 +62,7 @@ class DataSeparator:
         self.create_csv(year, data_by_year)
 
 
-separator = DataSeparator("vacancies_full.csv")
+separator = DataSeparator("vacancies_by_year.csv")
 separator.read_file()
 separator.csv_separate()
 

@@ -31,17 +31,12 @@ class MultiprocessorHandler:
         self.file_name = input("Введите название файла: ")
         self.profession = input("Введите название профессии: ")
         self.result_data = Data()
-        self.data = pd.read_csv("vacancies_by_year.csv")
+        self.data = pd.read_csv(self.file_name)
         self.data['published_at'] = self.data['published_at'].apply(lambda x: int(x[:4]))
         self.years = self.data['published_at'].unique()
         self.data['salary'] = self.data[['salary_from', 'salary_to']].mean(axis=1)
         self.create_processes()
-        pr = cProfile.Profile()
-        pr.enable()
-        time.sleep(1.3)
         self.csv_city_parser()
-        pr.disable()
-        pr.print_stats()
         self.result_data.sorted_dicts()
 
 

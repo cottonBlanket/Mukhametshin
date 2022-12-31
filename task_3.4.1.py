@@ -49,5 +49,4 @@ new_df['area_name'] = df['area_name']
 new_df['published_at'] = df['published_at']
 new_df['salary'] = df.apply(get_salary, axis=1)
 
-df_to_csv = new_df.head(100)
-df_to_csv.to_csv("vacancies_100_2.csv")
+new_df.to_csv("vacancies_full.csv")

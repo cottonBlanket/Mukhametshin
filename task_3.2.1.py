@@ -1,5 +1,4 @@
 import csv
-from datetime_parser import DateTimeParser
 
 
 class DataSeparator:
@@ -27,17 +26,10 @@ class DataSeparator:
         Считывает файл для парсинга, убирает невалидные строки, определяет поля и данные файла
         :return: заполненные массивы полей и данных файла
         """
-        with open(self.file_name, encoding="utf-8-sig") as test:
-            unpacker = csv.reader(test)
-            data = []
-            length = 0
-            for row in unpacker:
-                if length < len(row):
-                    length = len(row)
-                if '' not in row and length == len(row):
-                    data.append(row)
-            self.fields = data[0]
-            self.data = data[1:]
+        with open(self.file_name, "r", encoding="utf-8-sig") as data:
+            reader = csv.reader(data)
+            self.fields = reader.__next__()
+            self.data = [row for row in reader if not ("" in row) and len(row) == len(self.fields)]
 
     def create_csv(self, year: str, data: list):
         """
@@ -58,10 +50,10 @@ class DataSeparator:
         Разделяет csv-файл на части в зависимости от года
         :return: Созданы csv-файлы для каждого года
         """
-        year = DateTimeParser(self.data[0][self.fields.index('published_at')]).get_year_by_str_index()
+        year = self.data[0][self.fields.index('published_at')][:4]
         data_by_year = []
         for vacancy in self.data:
-            vacancy_year = DateTimeParser(vacancy[self.fields.index('published_at')]).get_year_by_str_index()
+            vacancy_year = vacancy[self.fields.index('published_at')][:4]
             if vacancy_year != year:
                 self.create_csv(year, data_by_year)
                 year = vacancy_year
@@ -70,7 +62,7 @@ class DataSeparator:
         self.create_csv(year, data_by_year)
 
 
-separator = DataSeparator("vacancies_by_year.csv")
+separator = DataSeparator("vacancies_full.csv")
 separator.read_file()
 separator.csv_separate()
 

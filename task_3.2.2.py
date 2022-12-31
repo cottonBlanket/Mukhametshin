@@ -49,7 +49,7 @@ class MultiprocessorHandler:
         result_data = manager.dict()
         all_processes = []
 
-        for year in self.years:
+        for year in self.years: 
             process = multiprocessing.Process(target=self.csv_year_parser, args=(year, result_data))
             all_processes.append(process)
             process.start()

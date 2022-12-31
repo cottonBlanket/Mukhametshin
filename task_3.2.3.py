@@ -1,8 +1,9 @@
 import cProfile
+import concurrent
 import math
 import os.path
 import time
-
+import concurrent.futures as pool
 import pandas as pd
 import multiprocessing
 
@@ -53,38 +54,32 @@ class MultiprocessorHandler:
         print('Доля вакансий по городам (в порядке убывания):', self.result_data.count_by_cities)
 
     def create_processes(self):
-        manager = multiprocessing.Manager()
-        result_data = manager.dict()
-        all_processes = []
+        """Добавляет в словари статистик значения из файла
+            Также запускает concurrent.futures
+        """
+        with concurrent.futures.ProcessPoolExecutor(max_workers=3) as executor:
+            wait_complete = []
+            for task in self.years:
+                future = executor.submit(self.csv_year_parser, task)
+                wait_complete.append(future)
 
-        for year in self.years:
-            process = multiprocessing.Process(target=self.csv_year_parser, args=(year, result_data))
-            all_processes.append(process)
-            process.start()
+        for res in concurrent.futures.as_completed(wait_complete):
+            result = res.result()
+            year = result[0]
+            self.result_data.salary_by_years[year] = result[1]
+            self.result_data.count_by_years[year] = result[2]
+            self.result_data.profession_salary[year] = result[3]
+            self.result_data.profession_count[year] = result[4]
 
-        for process in all_processes:
-            process.join()
-
-
-        self.fill_data(result_data)
-
-    def fill_data(self, data: dict):
-        for year, value in data.items():
-            self.result_data.salary_by_years[year] = value[0]
-            self.result_data.count_by_years[year] = value[1]
-            self.result_data.profession_salary[year] = value[2]
-            self.result_data.profession_count[year] = value[3]
-
-    def csv_year_parser(self, year: str, data: dict):
+    def csv_year_parser(self, year: str):
         file_name = rf"DataSet/vacancies_by_{year}.csv"
         if os.path.exists(file_name):
             df = pd.read_csv(file_name)
             df['salary'] = df[["salary_from", "salary_to"]].mean(axis=1)
             df_vacancy = df[df["name"].str.contains(self.profession)]
             if df_vacancy.empty:
-                data[year] = [df['salary'].mean(), len(df.index), 0, 0]
-            else:
-                data[year] = [df['salary'].mean(), len(df.index),
+                return [year, df['salary'].mean(), len(df.index), 0, 0]
+            return [year, df['salary'].mean(), len(df.index),
                               math.floor(df_vacancy['salary'].mean()), len(df_vacancy.index)]
 
     def csv_city_parser(self):
@@ -102,5 +97,5 @@ class MultiprocessorHandler:
 
 
 if __name__ == '__main__':
-    MultiprocessorHandler().print_result()
+    cProfile.run('MultiprocessorHandler().print_result()')
 
